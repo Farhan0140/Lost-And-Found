@@ -187,4 +187,6 @@ Device events: `boot`, `unlocked`, `locked`, `door_opened`, `door_closed`, `item
 
 ## 9. Deploying on Render
 
-`render.yaml` is included. Enter secrets in the Render dashboard, set `ALLOWED_ORIGINS` to your Vercel URL (no trailing slash), then run `npm run setup` once from the Render shell (or locally against the Neon URL).
+Step-by-step guide: **[DEPLOY.md](DEPLOY.md)** (Neon database, Render settings, environment variables, connecting Vercel and the kiosk).
+
+In short: Root Directory `lost_and_found`, Build Command `npm ci && npm run setup`, Start Command `npm start`, Health Check Path `/api/v1/health`, plus the secrets from `.env.example`. `render.yaml` describes the same service as a Blueprint.

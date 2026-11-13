@@ -117,3 +117,6 @@ constexpr uint8_t EVENTS_PER_REQUEST = 12;
 
 // Setup portal
 constexpr const char *SETUP_AP_NAME = "SmartFind-Setup";
+
+// Password of the setup Wi-Fi (WPA2 needs at least 8 characters).
+constexpr const char *SETUP_AP_PASSWORD = "12345678";

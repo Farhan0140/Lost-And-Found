@@ -3,7 +3,6 @@
 #include <DNSServer.h>
 #include <WebServer.h>
 #include <WiFi.h>
-#include <esp_random.h>
 
 #include "ApiClient.h"
 #include "Buzzer.h"
@@ -62,6 +61,17 @@ namespace setupPortal {
 	table { width: 100%; border-collapse: collapse; font-size: .95rem; }
 	th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 	.pill { font-size: .8rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); }
+
+	/* Wi-Fi list: real buttons, because phones ignore <datalist> */
+	.networks { list-style: none; margin: 8px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+	.networks:empty { display: none; }
+	.networks li + li { border-top: 1px solid var(--line); }
+	.networks button { width: 100%; display: flex; justify-content: space-between; gap: 12px; align-items: center; text-align: left; border: 0; border-radius: 0; background: transparent; color: CanvasText; font-weight: 400; padding: 12px 14px; min-height: 48px; }
+	.networks button.selected { background: color-mix(in srgb, var(--accent) 15%, transparent); font-weight: 600; }
+	.networks .name { overflow-wrap: anywhere; }
+	.networks .meta { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+	.chosen { margin-top: 6px; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
+	.chosen code { font: inherit; color: CanvasText; background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 0 4px; border-radius: 4px; white-space: pre; }
 </style>
 </head>
 <body>
@@ -73,12 +83,13 @@ namespace setupPortal {
 
 	<form method="post" action="/save">
 		<label for="ssid">Wi-Fi network</label>
-		<input type="text" id="ssid" name="ssid" list="networks" value="{{SSID}}" required autocomplete="off">
-		<datalist id="networks"></datalist>
+		<input type="text" id="ssid" name="ssid" value="{{SSID}}" required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+		<div class="chosen" id="chosen"></div>
 		<div class="row" style="margin-top:6px">
 			<button type="button" class="secondary" onclick="scan()">Scan for networks</button>
 			<span id="scanStatus"></span>
 		</div>
+		<ul class="networks" id="networks"></ul>
 
 		<label for="wifipass">Wi-Fi password
 			<small>{{WIFIPASS_HINT}}</small>
@@ -128,29 +139,103 @@ namespace setupPortal {
 </main>
 
 <script>
+	const ssidInput = document.getElementById('ssid');
+
+	/** Makes spaces visible: a name like " " would otherwise look empty. */
+	function visibleName(name) {
+		if (name.trim() === name && name !== '') {
+			return name;
+		}
+
+		return name.replace(/ /g, '␣');   // ␣
+	}
+
+	/** Under the field: exactly which name will be saved, if it has spaces at the ends. */
+	function showChosen() {
+		const chosen = document.getElementById('chosen');
+		const name = ssidInput.value;
+
+		chosen.textContent = '';
+
+		if (name !== '' && name.trim() !== name) {
+			const code = document.createElement('code');
+			code.textContent = visibleName(name);
+
+			chosen.append('Selected: ', code, ' (' + name.length + ' character' + (name.length === 1 ? '' : 's') + ', ␣ = space)');
+		}
+
+		for (const button of document.querySelectorAll('#networks button')) {
+			button.classList.toggle('selected', button.dataset.ssid === name);
+		}
+	}
+
+	function pick(name) {
+		ssidInput.value = name;
+		showChosen();
+
+		// Next step is the password.
+		document.getElementById('wifipass').focus();
+	}
+
 	async function scan() {
 		const status = document.getElementById('scanStatus');
 		status.textContent = 'Scanning…';
 
 		try {
 			const response = await fetch('/scan');
-			const networks = await response.json();
+			const found = await response.json();
+
+			// The same name from several access points: keep the strongest.
+			const strongest = new Map();
+
+			for (const network of found) {
+				const known = strongest.get(network.ssid);
+
+				if (!known || network.rssi > known.rssi) {
+					strongest.set(network.ssid, network);
+				}
+			}
+
+			const networks = [...strongest.values()].sort((a, b) => b.rssi - a.rssi);
 			const list = document.getElementById('networks');
 
 			list.innerHTML = '';
 
 			for (const network of networks) {
-				const option = document.createElement('option');
-				option.value = network.ssid;
-				option.label = network.ssid + ' (' + network.rssi + ' dBm' + (network.open ? ', open' : '') + ')';
-				list.appendChild(option);
+				const item = document.createElement('li');
+				const button = document.createElement('button');
+				const name = document.createElement('span');
+				const meta = document.createElement('span');
+
+				button.type = 'button';
+				button.dataset.ssid = network.ssid;
+				button.onclick = () => pick(network.ssid);
+
+				name.className = 'name';
+				name.textContent = network.ssid.trim() === ''
+					? visibleName(network.ssid) + '  (name is ' + network.ssid.length + ' space' + (network.ssid.length === 1 ? '' : 's') + ')'
+					: visibleName(network.ssid);
+
+				meta.className = 'meta';
+				meta.textContent = network.rssi + ' dBm' + (network.open ? ' · open' : ' · 🔒');
+
+				button.append(name, meta);
+				item.append(button);
+				list.append(item);
 			}
 
-			status.textContent = networks.length + ' network(s) found — click the field to pick one';
+			status.textContent = networks.length
+				? networks.length + ' network(s) found. Tap one to choose it.'
+				: 'No networks found. Try again, or type the name.';
+
+			showChosen();
 		} catch (error) {
-			status.textContent = 'Scan failed';
+			status.textContent = 'Scan failed. Try again, or type the name.';
 		}
 	}
+
+	ssidInput.addEventListener('input', showChosen);
+	showChosen();
 
 	async function servo(slot, position) {
 		await fetch('/servo?slot=' + slot + '&position=' + position, { method: 'POST' });
@@ -404,8 +489,8 @@ namespace setupPortal {
 	static void handleSave() {
 		Settings next = *settings;
 
+		// NOT trimmed: spaces are legal in a Wi-Fi name, and a name can even be just " ".
 		next.wifiSsid = server.arg("ssid");
-		next.wifiSsid.trim();
 
 		next.serverUrl = Settings::normalizeUrl(server.arg("url"));
 
@@ -552,8 +637,8 @@ namespace setupPortal {
 	void run(Settings &value) {
 		settings = &value;
 
-		// 8 random digits: easy to type on a phone, different every time.
-		snprintf(apPassword, sizeof(apPassword), "%08lu", static_cast<unsigned long>(esp_random() % 100000000UL));
+		// Fixed password, set in include/config.h.
+		strlcpy(apPassword, SETUP_AP_PASSWORD, sizeof(apPassword));
 
 		WiFi.mode(WIFI_AP_STA);
 		WiFi.softAP(SETUP_AP_NAME, apPassword);

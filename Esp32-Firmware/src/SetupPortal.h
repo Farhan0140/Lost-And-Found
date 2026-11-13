@@ -2,7 +2,7 @@
  * Setup portal: the kiosk becomes a Wi-Fi access point with a small web page.
  *
  *   Wi-Fi network ... SmartFind-Setup
- *   Password ........ 8 random digits, shown on the LCD (and the serial monitor)
+ *   Password ........ 12345678 (SETUP_AP_PASSWORD in config.h), also shown on the LCD
  *   Page ............ http://192.168.4.1  (most phones open it by themselves)
  *
  * On the page:

@@ -72,7 +72,7 @@ Then:
    Pass: 12345678
    Open 192.168.4.1
    ```
-   The password is random and new on every start (it is also printed on the serial monitor).
+   The password is always `12345678`. Change it with `SETUP_AP_PASSWORD` in `include/config.h` (at least 8 characters).
 3. Join that Wi-Fi with a phone or laptop. The page usually opens by itself; otherwise open http://192.168.4.1.
 4. Fill in the form:
    - **Wi-Fi network** (the "Scan" button lists what the kiosk can see; only 2.4 GHz works)
