@@ -1,0 +1,41 @@
+{
+	"name": "smartfind-backend",
+	"version": "1.0.0",
+	"description": "SmartFind backend — campus lost-and-found with OTP smart lockers",
+	"main": "src/server.js",
+	"scripts": {
+		"start": "node src/server.js",
+		"dev": "node --watch src/server.js",
+		"migrate": "node src/db/migrate.js",
+		"seed": "node src/db/seed.js",
+		"setup": "node src/db/migrate.js && node src/db/seed.js",
+		"test": "node --test --test-reporter=spec \"tests/**/*.test.js\"",
+		"evaluate": "node scripts/evaluate.js",
+		"list-models": "node scripts/list-models.js",
+		"generate-question-sets": "node scripts/generate-question-sets.js",
+		"create-device": "node scripts/create-device.js",
+		"verify-audit": "node scripts/verify-audit.js",
+		"format": "prettier --write ."
+	},
+	"author": "Team TwoByFour",
+	"license": "UNLICENSED",
+	"type": "module",
+	"dependencies": {
+		"argon2": "^0.45.2",
+		"cors": "^2.8.6",
+		"dotenv": "^18.0.10",
+		"express": "^5.3.0",
+		"helmet": "^8.3.0",
+		"jsonwebtoken": "^9.0.3",
+		"pg": "^8.23.1",
+		"swagger-ui-express": "^5.0.1",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"prettier": "^3.10.1"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"private": true
+}

@@ -1,0 +1,52 @@
+# Render blueprint for the SmartFind backend.
+# Secrets (sync: false) are entered in the Render dashboard, never committed.
+services:
+  - type: web
+    name: smartfind-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: JWT_SECRET
+        sync: false
+      - key: NID_HMAC_KEY
+        sync: false
+      # Your Vercel URL, no trailing slash, e.g. https://smartfind.vercel.app
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GEMINI_API_KEY1
+        sync: false
+      - key: GEMINI_API_KEY2
+        sync: false
+      - key: GEMINI_API_KEY3
+        sync: false
+      - key: AI_TIMEOUT_MS
+        value: "60000"
+      - key: AI_STEP_DEADLINE_MS
+        value: "45000"
+      # Model slugs live ONLY here and in .env — never in code.
+      - key: GEMINI_MODEL_FOLLOWUPS
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_MODEL_EXTRACTION
+        value: gemini-3.1-flash-lite
+      - key: GEMINI_MODEL_QUESTIONS
+        value: gemini-2.5-pro
+      - key: GEMINI_MODEL_EMBEDDING
+        value: gemini-embedding-001
+      - key: ADMIN_STUDENT_ID
+        value: ADMIN001
+      - key: ADMIN_EMAIL
+        value: admin@smartfind.local
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Dhaka
