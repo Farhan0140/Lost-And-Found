@@ -11,6 +11,7 @@ import { query, withTransaction } from '../../db/pool.js';
 import { hashOtpCode } from '../../lib/crypto.js';
 import { logger } from '../../lib/logger.js';
 import { audit } from '../audit/audit.service.js';
+import { publishChange } from '../live/live.hub.js';
 import { handleDoorSettled } from '../lockers/custody.service.js';
 import { notifyAdmins } from '../notifications/notifications.service.js';
 import {
@@ -163,7 +164,7 @@ export async function verifyKioskCode(deviceId, code) {
  *   door_opened             contact switch released
  *   door_closed             contact switch pressed (raw)
  *   item_detected / item_removed   raw IR changes (informational)
- *   door_closed_settled     { itemPresent } — IR stable for 3 s after the door closed
+ *   door_closed_settled     { itemPresent } — IR stable for `settleMs` (1 s) after the door closed
  *   door_open_too_long      { seconds }
  *   error                   { message }
  *
@@ -171,6 +172,7 @@ export async function verifyKioskCode(deviceId, code) {
  */
 export async function receiveEvents(deviceId, bootId, events) {
 	const acked = [];
+	let applied = 0;
 
 	for (const event of events) {
 		const inserted = await query(
@@ -196,6 +198,7 @@ export async function receiveEvents(deviceId, bootId, events) {
 		if (inserted.rowCount > 0) {
 			try {
 				await applyEvent(deviceId, event);
+				applied++;
 			} catch (error) {
 				logger.error(
 					'device',
@@ -205,6 +208,12 @@ export async function receiveEvents(deviceId, bootId, events) {
 		}
 
 		acked.push(event.seq);
+	}
+
+	// Door / item / servo changed → every open locker view refetches now, not at its next poll.
+	// (Deposits / collections also notify the student, which refreshes their report page.)
+	if (applied > 0) {
+		publishChange({ everyone: ['lockers'], admins: ['admin'] });
 	}
 
 	return acked;
@@ -370,10 +379,14 @@ export async function receiveHeartbeat(deviceId, heartbeat) {
 		firmware: heartbeat.firmware ?? getDeviceState(deviceId)?.firmware,
 	});
 
+	let anyChanged = false;
+
 	for (const reading of heartbeat.lockers ?? []) {
 		const changed = updateSensors(deviceId, reading.slot, reading);
 
 		if (changed) {
+			anyChanged = true;
+
 			await query(
 				`
 				update lockers
@@ -389,6 +402,10 @@ export async function receiveHeartbeat(deviceId, heartbeat) {
 				],
 			);
 		}
+	}
+
+	if (anyChanged) {
+		publishChange({ everyone: ['lockers'], admins: ['admin'] });
 	}
 }
 

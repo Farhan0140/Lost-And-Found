@@ -79,7 +79,7 @@ void Lockers::begin() {
 		locker.servoChannel = SERVO_CHANNELS[index];
 
 		// Door switch to GND → internal pull-up.
-		// IR pins 34–39 are input-only and have no pull-ups; the IR module drives them.
+		// IR: plain input, the module drives the pin (GPIO 34–39 have no pull-ups anyway).
 		pinMode(DOOR_PINS[index], INPUT_PULLUP);
 		pinMode(IR_PINS[index], INPUT);
 
@@ -231,6 +231,7 @@ void Lockers::updateLocker(Locker &locker, uint32_t now) {
 			}
 
 			if (doorClosed) {
+				locker.closedAt = now;
 				enter(locker, LockerState::Closing);
 			}
 			break;
@@ -250,7 +251,9 @@ void Lockers::updateLocker(Locker &locker, uint32_t now) {
 				// Should not happen with the bolt locked — treat as an open door.
 				locker.openedAt = now;
 				enter(locker, LockerState::Open);
-			} else if (inState >= timings.settleMs && now - locker.irStableSince >= timings.settleMs) {
+			} else if (now - locker.closedAt >= timings.settleMs && now - locker.irStableSince >= timings.settleMs) {
+				// Door shut for settleMs and the IR has not changed meanwhile → report it.
+				// Counting from the close (not from the bolt) saves ~0.8 s per deposit.
 				reportSettled(locker);
 			}
 			break;
@@ -327,7 +330,12 @@ void Lockers::lockAndSettle(Locker &locker) {
 
 	shared::events.push("locked", locker.slot, locker.sessionId);
 
-	locker.irStableSince = millis();
+	// Coming from UNLOCKED (door never opened): there was no close, so start the settle time now.
+	// Coming from CLOSING: closedAt is already set, the settle time is partly over.
+	if (locker.state != LockerState::Closing) {
+		locker.closedAt = millis();
+	}
+
 	enter(locker, LockerState::Settling);
 	publishSnapshot(locker);
 }

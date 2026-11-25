@@ -255,8 +255,84 @@ const metaPaths = {
 	},
 };
 
+// ─────────────────────────────────────────────────────────────
+//  Live updates (Server-Sent Events)
+// ─────────────────────────────────────────────────────────────
+
+const liveStream = operation({
+	id: 'openLiveStream',
+	tag: 'Live',
+	summary:
+		'Live "what changed" stream (Server-Sent Events) — the web client refetches on each message',
+	auth: 'none',
+	description: [
+		'Stays open. Messages carry **only topic names, never data**; the page then refetches through the normal API.',
+		'',
+		'- **Without a token:** only `lockers` (the public locker grid).',
+		'- **With `Authorization: Bearer …`:** also `reports`, `matches`, `notifications` of this user, and `admin` for admins.',
+		'',
+		'```',
+		'retry: 2000',
+		'',
+		'event: hello',
+		'data: {"topics":[]}',
+		'',
+		'event: change',
+		'data: {"topics":["lockers","reports"]}',
+		'',
+		': ping 1764061200000',
+		'```',
+		'',
+		'A `: ping` comment arrives every 20 s. Swagger UI cannot display a stream; try it with `curl -N`.',
+	].join('\n'),
+	ok: {
+		description: 'An open `text/event-stream`',
+		schema: { type: 'string' },
+	},
+	errors: { 401: ['TOKEN_EXPIRED', 'INVALID_TOKEN'] },
+});
+
+// The stream is text/event-stream, not JSON; the token is optional.
+liveStream.responses[200] = {
+	description: 'An open `text/event-stream`',
+	content: {
+		'text/event-stream': {
+			schema: { type: 'string' },
+			example: 'event: change\ndata: {"topics":["lockers"]}\n\n',
+		},
+	},
+};
+liveStream.security = [{}, { bearerAuth: [] }];
+
+const livePaths = {
+	'/live': {
+		get: liveStream,
+	},
+
+	'/live/stats': {
+		get: operation({
+			id: 'getLiveStats',
+			tag: 'Live',
+			summary: 'How many browser tabs are listening to the live stream right now',
+			auth: 'admin',
+			ok: {
+				schema: {
+					type: 'object',
+					properties: {
+						connections: { type: 'integer' },
+						users: { type: 'integer' },
+						anonymous: { type: 'integer' },
+					},
+				},
+				example: { connections: 3, users: 2, anonymous: 1 },
+			},
+		}),
+	},
+};
+
 export const publicPaths = {
 	...healthPaths,
 	...authPaths,
 	...metaPaths,
+	...livePaths,
 };

@@ -3,6 +3,7 @@
  *
  *   QueryClientProvider   server data cache (lib/queries.js)
  *   AuthProvider          who is logged in (lib/auth.jsx)
+ *   LiveUpdates           live "what changed" stream → refetches at once (lib/live.js)
  *   MotionConfig          respects "reduce motion" in the OS settings
  *   Toaster               toast messages (sonner)
  */
@@ -18,6 +19,7 @@ import { Toaster } from 'sonner';
 
 import { router } from './App.jsx';
 import { AuthProvider } from './lib/auth.jsx';
+import { LiveUpdates } from './lib/live.js';
 import { cleanupOldPhotos } from './lib/photoStore.js';
 import { queryClient } from './lib/queries.js';
 import { useTheme } from './lib/theme.js';
@@ -43,6 +45,7 @@ createRoot(document.getElementById('root')).render(
 	<StrictMode>
 		<QueryClientProvider client={queryClient}>
 			<AuthProvider>
+				<LiveUpdates />
 				<MotionConfig reducedMotion="user">
 					<RouterProvider router={router} />
 					<ThemedToaster />

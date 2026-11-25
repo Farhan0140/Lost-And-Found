@@ -21,6 +21,7 @@ import { stopSweeper, startSweeper } from './jobs/sweeper.js';
 import { explainError } from './lib/errors.js';
 import { logger } from './lib/logger.js';
 import { loadDevices, loadPendingCommands } from './modules/devices/deviceState.js';
+import { closeAllStreams } from './modules/live/live.hub.js';
 
 async function start() {
 	logger.info('server', `Starting SmartFind backend (${config.nodeEnv})`);
@@ -107,6 +108,9 @@ async function start() {
 		logger.info('server', `${signal} received — shutting down`);
 
 		stopSweeper();
+
+		// Open browser streams would otherwise keep server.close() waiting; the tabs reconnect.
+		closeAllStreams();
 
 		server.close(() => {
 			pool.end().finally(() => process.exit(0));

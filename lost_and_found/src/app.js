@@ -9,6 +9,7 @@
  *   /api/v1/notifications   in-app notifications
  *   /api/v1/admin           admin dashboard API
  *   /api/v1/device          ESP32 only (device secret)
+ *   /api/v1/live            live "what changed" stream for the web client (Server-Sent Events)
  *
  *   /api/docs               Swagger UI (OpenAPI 3.1) — see src/docs/
  */
@@ -27,6 +28,7 @@ import { adminRouter } from './modules/admin/admin.routes.js';
 import { getAiHealth } from './modules/ai/keyPool.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { deviceRouter } from './modules/devices/device.routes.js';
+import { liveRouter } from './modules/live/live.routes.js';
 import { matchesRouter } from './modules/matching/matches.routes.js';
 import { metaRouter } from './modules/meta/meta.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
@@ -113,6 +115,7 @@ export function createApp() {
 	app.use('/api/v1/notifications', notificationsRouter);
 	app.use('/api/v1/admin', adminRouter);
 	app.use('/api/v1/device', deviceRouter);
+	app.use('/api/v1/live', liveRouter);
 
 	app.get('/', (req, res) => {
 		res.json({

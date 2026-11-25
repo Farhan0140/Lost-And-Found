@@ -8,7 +8,10 @@
  *   Keypad rows ..................... 32, 33, 25, 26
  *   Keypad columns .................. 27, 14, 13        (3×4 keypad, no A–D column)
  *   Door switches L1–L4 ............. 4, 16, 17, 18     (switch to GND, internal pull-up)
- *   IR sensors L1–L4 ................ 34, 35, 36, 39    (input-only pins; the module drives them)
+ *   IR sensors L1–L4 ................ 5, 35, 36, 39     (the module drives them)
+ *
+ * Board labels on a 30-pin DevKit:  GPIO 16 = RX2,  17 = TX2,  36 = VP,  39 = VN,  others = D<number>.
+ * Still free: D15. Avoid RX0 / TX0 (GPIO 3 / 1): they are the USB serial port (upload + log).
  *   Buzzer (active) ................. 19
  *   Setup button .................... 23                (to GND, internal pull-up)
  *   Status LED ...................... 2                 (onboard)
@@ -30,8 +33,8 @@
 constexpr uint8_t LOCKER_COUNT = 4;
 
 // Slot numbers (1-based) must match the lockers created for this device on the server.
-constexpr uint8_t DOOR_PINS[LOCKER_COUNT] = {4, 16, 17, 18};
-constexpr uint8_t IR_PINS[LOCKER_COUNT] = {34, 35, 36, 39};
+constexpr uint8_t DOOR_PINS[LOCKER_COUNT] = {4, 16, 17, 18};   // D4, RX2, TX2, D18
+constexpr uint8_t IR_PINS[LOCKER_COUNT] = {5, 35, 36, 39};   // D5, D35, VP, VN
 constexpr uint8_t SERVO_CHANNELS[LOCKER_COUNT] = {0, 1, 2, 3};
 
 // Door switch: pressed (connected to GND → LOW) when the door is CLOSED.
@@ -50,7 +53,7 @@ constexpr uint16_t SERVO_MAX_US = 2400;  // pulse for 180°
 
 // Angles of the sliding bolt. Test with the "servo test" in the setup portal and adjust.
 constexpr uint8_t SERVO_LOCKED_ANGLE = 10;
-constexpr uint8_t SERVO_UNLOCKED_ANGLE = 100;
+constexpr uint8_t SERVO_UNLOCKED_ANGLE = 110;
 
 // How long the servo needs to reach its position before its signal is switched off.
 // Switching off stops SG90 buzzing / heating; the bolt stays where it is.
@@ -94,7 +97,7 @@ constexpr uint32_t DEFAULT_POLL_INTERVAL_MS = 1000;
 constexpr uint32_t DEFAULT_HEARTBEAT_INTERVAL_MS = 30000;
 constexpr uint32_t DEFAULT_DOOR_WARNING_MS = 45000;
 constexpr uint32_t DEFAULT_DOOR_UNRESOLVED_MS = 60000;
-constexpr uint32_t DEFAULT_SETTLE_MS = 3000;
+constexpr uint32_t DEFAULT_SETTLE_MS = 1000;
 
 // Keypad: typed digits are cleared after this much inactivity.
 constexpr uint32_t KEYPAD_IDLE_CLEAR_MS = 30000;

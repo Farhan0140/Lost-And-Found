@@ -105,7 +105,7 @@ deviceRouter.post('/hello', validateBody(helloSchema), async (req, res) => {
 		heartbeatIntervalMs: RULES.deviceHeartbeatIntervalMs,
 		doorOpenWarningMs: 45_000,
 		doorOpenUnresolvedMs: RULES.doorOpenUnresolvedMs,
-		settleMs: 3000,
+		settleMs: RULES.deviceSettleMs,
 		lockers: rows,
 	});
 });

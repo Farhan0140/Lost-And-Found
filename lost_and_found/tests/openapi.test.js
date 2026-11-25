@@ -36,6 +36,7 @@ const ROUTE_FILES = {
 	'src/modules/matching/matches.routes.js': '/matches',
 	'src/modules/notifications/notifications.routes.js': '/notifications',
 	'src/modules/devices/device.routes.js': '/device',
+	'src/modules/live/live.routes.js': '/live',
 	'src/modules/admin/admin.routes.js': '/admin',
 	'src/modules/admin/review.admin.routes.js': '/admin/matches',
 	'src/modules/admin/reports.admin.routes.js': '/admin',

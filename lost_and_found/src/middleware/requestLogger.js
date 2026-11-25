@@ -14,7 +14,8 @@ import crypto from 'node:crypto';
 import { config } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 
-const QUIET_PATHS = ['/api/v1/device/poll', '/api/v1/device/heartbeat'];
+// The live stream stays open for minutes; its line on close says nothing useful.
+const QUIET_PATHS = ['/api/v1/device/poll', '/api/v1/device/heartbeat', '/api/v1/live'];
 
 // Swagger UI loads ~8 files (scripts, css, icons); only the page itself is logged.
 const DOCS_ASSET = /^\/api\/docs\/.+\.(js|css|png|map)$/;

@@ -1,7 +1,7 @@
 /**
  * Physical custody: what happens when a locker door closes (§11.3).
  *
- * The ESP32 waits until the IR reading has been STABLE for 3 s after the door-close
+ * The ESP32 waits until the IR reading has been STABLE for 1 s after the door-close
  * contact fires, then sends `door_closed_settled { slot, itemPresent }`. A hand in the
  * beam leaves before the door shuts, so a single reading proves nothing (corner case 2).
  *

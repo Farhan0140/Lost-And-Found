@@ -1,5 +1,5 @@
 /**
- * Bell with the unread count (polled every 20 s) and a dropdown of the latest notifications.
+ * Bell with the unread count (updated by the live stream, polled every 20 s without it) and a dropdown of the latest notifications.
  * Clicking one marks it read and opens its link (e.g. /reports/…).
  */
 

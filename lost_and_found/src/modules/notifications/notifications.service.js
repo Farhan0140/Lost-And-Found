@@ -1,10 +1,12 @@
 /**
  * In-app notifications (D3): no push, email or SMS.
- * The web client polls `GET /notifications/unread-count`.
+ * Open browser tabs hear about a new one at once through the live stream (live.hub.js);
+ * `GET /notifications/unread-count` polling is only the fallback.
  */
 
 import { pool } from '../../db/pool.js';
 import { logger } from '../../lib/logger.js';
+import { publishChange } from '../live/live.hub.js';
 
 /**
  * @param db       pool or transaction client
@@ -20,6 +22,10 @@ export async function notify(db, userId, { type, title, body, link = null }) {
 		[userId, type, title, body, link],
 	);
 
+	// A notification always comes with a change to that user's report or match,
+	// so their open tabs refetch those too (after the COMMIT, when in a transaction).
+	publishChange({ users: { [userId]: ['notifications', 'reports', 'matches'] } }, db);
+
 	logger.debug('notify', `${type} → user ${userId}`);
 }
 
@@ -34,6 +40,8 @@ export async function notifyAdmins(db, { type, title, body, link = null }) {
 		`,
 		[type, title, body, link],
 	);
+
+	publishChange({ admins: ['notifications', 'admin'] }, db);
 }
 
 export async function listNotifications(userId, { limit = 30, before = null } = {}) {

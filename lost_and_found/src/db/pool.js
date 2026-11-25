@@ -68,6 +68,11 @@ export function query(text, params = []) {
 export async function withTransaction(work) {
 	const client = await pool.connect();
 
+	// Things to do only once the transaction is committed (live updates to browsers).
+	// Code inside `work` adds to it via publishChange(…, client). A rollback drops them.
+	const afterCommit = [];
+	client.afterCommit = afterCommit;
+
 	try {
 		await client.query('begin');
 
@@ -75,12 +80,24 @@ export async function withTransaction(work) {
 
 		await client.query('commit');
 
+		// The client goes back to the pool below; detach the list first.
+		client.afterCommit = undefined;
+
+		for (const task of afterCommit) {
+			try {
+				task();
+			} catch (error) {
+				logger.warn('database', `After-commit task failed: ${error.message}`);
+			}
+		}
+
 		return result;
 	} catch (error) {
 		await client.query('rollback').catch(() => {});
 
 		throw error;
 	} finally {
+		client.afterCommit = undefined;
 		client.release();
 	}
 }

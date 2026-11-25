@@ -9,6 +9,7 @@
 import { keepPreviousData, QueryClient, useQuery } from '@tanstack/react-query';
 
 import { api, ApiError } from './api.js';
+import { livePoll } from './liveStatus.js';
 
 export const queryClient = new QueryClient({
 	defaultOptions: {
@@ -83,12 +84,15 @@ export function useRules() {
 	});
 }
 
-/** Public locker grid — refreshed every few seconds for the live 3D view. */
+/**
+ * Public locker grid for the live 3D view. The live stream refetches it the moment a
+ * door / item changes; the 5 s poll is only used while the stream is down.
+ */
 export function usePublicLockers({ live = true } = {}) {
 	return useQuery({
 		queryKey: keys.publicLockers(),
 		queryFn: () => api.get('/meta/lockers').then((result) => result.lockers),
-		refetchInterval: live ? 5000 : false,
+		refetchInterval: live ? livePoll(5000) : false,
 	});
 }
 
@@ -104,13 +108,16 @@ export function useMyReports(tab) {
 	});
 }
 
-/** `poll` may be a number (ms) or `(data) => ms | false`, so the speed can follow the state. */
+/**
+ * `poll` may be a number (ms) or `(data) => ms | false`, so the speed can follow the state.
+ * While the live stream is connected, it slows down to a 30 s safety net (lib/liveStatus.js).
+ */
 function pollInterval(poll) {
-	if (typeof poll === 'function') {
-		return (query) => poll(query.state.data) || false;
+	if (!poll) {
+		return false;
 	}
 
-	return poll || false;
+	return livePoll(poll);
 }
 
 /**
@@ -158,7 +165,7 @@ export function useMatchOtp(id, { enabled = true } = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Notifications (unread count polled every 20 s)
+//  Notifications (refetched by the live stream; polled every 20 s only without it)
 // ─────────────────────────────────────────────────────────────
 
 export function useUnreadCount(enabled = true) {
@@ -166,7 +173,7 @@ export function useUnreadCount(enabled = true) {
 		queryKey: keys.unread(),
 		queryFn: () => api.get('/notifications/unread-count').then((result) => result.unread),
 		enabled,
-		refetchInterval: 20_000,
+		refetchInterval: livePoll(20_000),
 		refetchIntervalInBackground: false,
 	});
 }
@@ -188,12 +195,19 @@ export function useNotifications(enabled = true) {
 
 /**
  *     const { data } = useAdmin('/admin/users', { page, search });
+ *
+ * A number as `refetchInterval` is the speed WITHOUT the live stream; while it is
+ * connected, admin pages refetch on every "admin" message instead.
  */
 export function useAdmin(path, query = undefined, options = {}) {
+	const { refetchInterval, ...rest } = options;
+
 	return useQuery({
 		queryKey: keys.admin(path, query ?? {}),
 		queryFn: () => api.get(path, { query }),
 		placeholderData: keepPreviousData,
-		...options,
+		refetchInterval:
+			typeof refetchInterval === 'number' ? livePoll(refetchInterval) : refetchInterval,
+		...rest,
 	});
 }

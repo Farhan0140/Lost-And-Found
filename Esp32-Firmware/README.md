@@ -38,8 +38,8 @@ All of it lives in [`include/config.h`](include/config.h). Change it there if yo
 | I²C SDA / SCL (LCD + PCA9685) | 21 / 22 |
 | Keypad rows 1–4 | 32, 33, 25, 26 |
 | Keypad columns 1–3 | 27, 14, 13 |
-| Door switches L1–L4 | 4, 16, 17, 18 (to GND, internal pull-up) |
-| IR sensors L1–L4 | 34, 35, 36, 39 (input-only pins) |
+| Door switches L1–L4 | 4, 16, 17, 18 = **D4, RX2, TX2, D18** (to GND, internal pull-up) |
+| IR sensors L1–L4 | 5, 35, 36, 39 = **D5, D35, VP, VN** |
 | Buzzer | 19 |
 | Setup button | 23 (to GND, internal pull-up) |
 | Status LED | 2 (onboard) |
@@ -48,7 +48,10 @@ All of it lives in [`include/config.h`](include/config.h). Change it there if yo
 **Ground:** connect the servo supply's GND, the PCA9685 GND and the ESP32 GND together.
 The PCA9685's `V+` terminal gets the separate 5 V; its `VCC` pin gets 3.3 V from the ESP32.
 
-**IR sensors** on GPIO 34–39: these pins have no pull-ups. That is fine for FC-51 modules, which drive their output.
+**Board labels:** on a 30-pin DevKit, GPIO 16 is printed **RX2**, 17 **TX2**, 36 **VP** and 39 **VN**. The rest are printed `D<number>`.
+Still free: **D15**. Don't use **RX0 / TX0**: they are the USB serial port, and anything on them breaks uploading and the serial log.
+
+**IR sensors** on VP, VN and D35: these pins have no pull-ups. That is fine for FC-51 modules, which drive their output.
 If you use bare IR LEDs or open-collector sensors, add a 10 kΩ pull-up to 3.3 V.
 
 **IR modules at 5 V:** their output then swings to 5 V. Power them from 3.3 V (most work fine), or add a voltage divider.
@@ -135,10 +138,11 @@ The two halves only talk through FreeRTOS queues ([`src/Shared.h`](src/Shared.h)
  LOCKED ──unlock──▶ UNLOCKED ──door opens──▶ OPEN ──door closes──▶ CLOSING ──0.8 s──▶ bolt locks
    ▲                   │ 20 s, door never opened                                        │
    │                   └───────────────────────────────▶ bolt locks ───────────────────┤
-   └──── door_closed_settled { itemPresent } ◀── SETTLING (IR stable for 3 s) ◀────────┘
+   └──── door_closed_settled { itemPresent } ◀── SETTLING (closed 1 s, IR unchanged) ◀──┘
 ```
 
-The firmware does **not** decide whether a deposit worked. It reports what the IR sensor sees once the door has been closed and the reading has been stable for 3 s.
+The firmware does **not** decide whether a deposit worked. It reports what the IR sensor sees once the door has been closed for 1 s and the reading has not changed in that time.
+The 1 s counts from the moment the door closed, so it overlaps the 0.8 s before the bolt moves: the website shows "Item stored" about 1–1.5 s after the door shuts.
 The server decides: item present after a deposit → stored. Empty after a collection → collected. Anything else → the session fails and staff are told.
 
 **Power cut:** after a restart, every closed door is locked straight away. An open door keeps its bolt out of the way and locks as soon as the door is closed.
@@ -169,14 +173,14 @@ Up to 48 events wait in RAM while the server is unreachable. If more pile up, th
 
 All in `include/config.h`, then `pio run -t upload`:
 
-- **Bolt angles:** `SERVO_LOCKED_ANGLE` (10°) and `SERVO_UNLOCKED_ANGLE` (100°). Use the portal's servo test. The bolt must clear the door fully when open and be fully engaged when locked, without the servo straining (buzzing) at either end.
+- **Bolt angles:** `SERVO_LOCKED_ANGLE` (10°) and `SERVO_UNLOCKED_ANGLE` (120°, so the bolt travels 110°). Use the portal's servo test. The bolt must clear the door fully when open and be fully engaged when locked, without the servo straining (buzzing) at either end.
 - **Servo range:** `SERVO_MIN_US` / `SERVO_MAX_US` (500–2400 µs). Some SG90 clones want 1000–2000.
 - **Servo buzzing / warm:** `SERVO_RELEASE_AFTER_MOVE = true` switches the signal off 600 ms after each move. The bolt stays put by friction. Set it to `false` if your bolt slides back by itself.
 - **Door switch wired the other way** (open door = GND): `DOOR_CLOSED_LEVEL = HIGH`.
 - **IR sensor reads backwards:** `IR_ITEM_PRESENT_LEVEL = HIGH`. Turn the module's potentiometer so it sees a small item at the back of the locker, but not the empty wall.
 - **More or fewer lockers:** `LOCKER_COUNT` plus the pin arrays. The slots must match the lockers created for the device on the server.
 
-The open-door warning (45 s), the unresolved limit (60 s), the settle time (3 s) and the poll / heartbeat intervals come from the server's `/device/hello` answer. The values in `config.h` are only used before that.
+The open-door warning (45 s), the unresolved limit (60 s), the settle time (1 s) and the poll / heartbeat intervals come from the server's `/device/hello` answer. The values in `config.h` are only used before that.
 
 ---
 

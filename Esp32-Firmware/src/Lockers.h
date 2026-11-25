@@ -7,8 +7,9 @@
  *     │                     ▼                                               │ closed 0.8 s
  *     └───── settled ── SETTLING ◀────────────── bolt slides back ◀─────────┘
  *
- *   SETTLING waits until the IR reading has been stable for `settleMs` (3 s) and then
- *   reports `door_closed_settled { itemPresent }`. The SERVER decides from that whether
+ *   SETTLING waits until the door has been closed for `settleMs` (1 s, counted from the
+ *   moment it closed, so it overlaps the 0.8 s before the bolt moves) AND the IR reading
+ *   has not changed for `settleMs`. Then it reports `door_closed_settled { itemPresent }`. The SERVER decides from that whether
  *   a deposit worked or an item was collected — the firmware only reports what it sees.
  *
  *   While OPEN: after `doorWarningMs` (45 s) the kiosk beeps; after `doorUnresolvedMs`
@@ -102,6 +103,7 @@ private:
 		bool warned = false;
 		bool reportedTooLong = false;
 
+		uint32_t closedAt = 0;      // when the door closed (the settle time counts from here)
 		uint32_t irStableSince = 0;
 	};
 

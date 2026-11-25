@@ -281,7 +281,7 @@ export function AdminLockers() {
 			<PageHeader
 				eyebrow="Admin"
 				title="Lockers"
-				description="Live state from the kiosks, refreshed every few seconds. Click a locker to manage it."
+				description="Live state from the kiosks, updated the moment a door or item changes. Click a locker to manage it."
 			/>
 
 			<div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">

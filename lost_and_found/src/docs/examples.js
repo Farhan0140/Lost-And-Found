@@ -403,7 +403,7 @@ export const deviceHello = {
 	heartbeatIntervalMs: 30000,
 	doorOpenWarningMs: 45000,
 	doorOpenUnresolvedMs: 60000,
-	settleMs: 3000,
+	settleMs: 1000,
 	lockers: [
 		{ slot: 1, label: 'L1', status: 'available' },
 		{ slot: 2, label: 'L2', status: 'available' },

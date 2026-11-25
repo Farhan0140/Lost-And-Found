@@ -133,6 +133,14 @@ async function refreshTokens() {
 	return refreshing;
 }
 
+/**
+ * Gets a fresh access token (shared with any refresh already running).
+ * Used by the live stream (lib/live.js), which talks to the server without send().
+ */
+export function refreshAccessToken() {
+	return refreshTokens();
+}
+
 // ─────────────────────────────────────────────────────────────
 //  The request function
 // ─────────────────────────────────────────────────────────────

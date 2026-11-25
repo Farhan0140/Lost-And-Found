@@ -46,6 +46,12 @@ export const RULES = Object.freeze({
 	doorOpenUnresolvedMs: 60 * 1000,
 	unclaimedAfterMs: 10 * DAY,
 	devicePollIntervalMs: 1000,
+
+	// After the door closes, the IR reading must stay the same this long before the kiosk
+	// reports `door_closed_settled`. The hand is out before the door shuts, so 1 s is plenty;
+	// a longer value only makes the website wait longer for "Item stored".
+	deviceSettleMs: 1000,
+
 	deviceHeartbeatIntervalMs: 30 * 1000,
 	deviceOfflineAfterMs: 3 * 30 * 1000,
 	deviceLastSeenWriteMs: 5 * MINUTE,

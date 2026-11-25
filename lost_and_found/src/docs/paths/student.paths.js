@@ -408,7 +408,7 @@ const notificationPaths = {
 		get: operation({
 			id: 'countUnreadNotifications',
 			tag: 'Notifications',
-			summary: 'Unread count (the web client polls this every ~20 s)',
+			summary: 'Unread count (refetched on a live `notifications` message; polled as a fallback)',
 			ok: {
 				schema: { type: 'object', properties: { unread: { type: 'integer' } } },
 				example: { unread: 2 },

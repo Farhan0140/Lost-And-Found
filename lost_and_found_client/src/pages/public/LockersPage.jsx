@@ -1,5 +1,5 @@
 /**
- * Live locker view (public): 3D cabinet + per-locker cards, refreshed every 5 s.
+ * Live locker view (public): 3D cabinet + per-locker cards, updated through the live stream (lib/live.js).
  */
 
 import { Boxes, RefreshCw, Wifi, WifiOff } from 'lucide-react';
@@ -32,7 +32,7 @@ export function LockersPage() {
 			<PageHeader
 				eyebrow="Live"
 				title="Smart lockers"
-				description="Drag the cabinet to look around. Click a door to see its state. Updates every few seconds."
+				description="Drag the cabinet to look around. Click a door to see its state. Updates live."
 				actions={
 					<Badge
 						tone={online ? 'ok' : 'bad'}

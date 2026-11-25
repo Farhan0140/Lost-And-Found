@@ -17,6 +17,7 @@
  */
 
 import { pool } from '../../db/pool.js';
+import { publishChange } from '../live/live.hub.js';
 
 export async function audit(db, entry) {
 	const {
@@ -44,7 +45,22 @@ export async function audit(db, entry) {
 			JSON.stringify(details ?? {}),
 		],
 	);
+
+	// Every audited action changes something an admin page shows → admin tabs refetch now.
+	// Actions that can change a locker's state also refresh the public locker grid.
+	// Inside a transaction this waits for the COMMIT.
+	publishChange(
+		{
+			everyone: LOCKER_ACTIONS.test(action) ? ['lockers'] : [],
+			admins: ['admin'],
+		},
+		db,
+	);
 }
+
+// Actions that reserve, fill, empty or block a locker (see the audit actions in the code).
+const LOCKER_ACTIONS =
+	/^(locker|custody|otp|device|command|overflow)\.|^match\.hold_expired$|^report\.(unclaimed_expired|cancelled|queued_for_locker|overflow|abandoned_codes_used_up)$/;
 
 /** Shortcut for system jobs (sweeper, seed). */
 export function auditSystem(db, action, entityType, entityId, details = {}) {

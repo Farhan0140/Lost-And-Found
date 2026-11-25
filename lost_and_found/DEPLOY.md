@@ -213,6 +213,9 @@ Replace `smartfind-api` with your service name:
 
 Without this step the browser blocks every request (a CORS error in the console).
 
+**Live updates check:** open the site, then DevTools → **Network** → filter `live`. One request to `/api/v1/live` stays open (type `eventsource` / `fetch`, status 200, still loading). That is the live stream.
+When a kiosk door closes or an item is stored, pages update within about a second, without waiting for a poll. Nothing needs to be configured on Render for it.
+
 ### ESP32 kiosk
 
 In the kiosk's setup portal (Wi-Fi `SmartFind-Setup`, see `Esp32-Firmware/README.md`):
@@ -243,6 +246,7 @@ To deploy by hand: service → **Manual Deploy → Deploy latest commit**.
   While the kiosk is online it polls every second, so the service stays awake. Without the kiosk the first page load can be slow.
   The kiosk itself copes: it keeps retrying until the server answers.
 - **750 free hours a month:** that is enough for this one service running all month. A second free service would share the same hours.
+- **Live stream:** every open browser tab keeps one connection to `/api/v1/live`. The server pings it every 20 s, so Render does not cut it. After a deploy the tabs reconnect by themselves.
 - **One instance only:** the backend keeps kiosk state (online status, pending commands, keypad lockouts) in memory. Do not scale it to more than one instance.
 - **No shell on the free plan:** that is why the seed runs in the build command instead of `npm run setup` by hand.
 - **Logs** are kept for a limited time on the free plan. Download them from the Logs page if you need them for the report.
