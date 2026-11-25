@@ -6,5 +6,16 @@
 	"semi": true,
 	"trailingComma": "all",
 	"bracketSpacing": true,
-	"arrowParens": "always"
+	"arrowParens": "always",
+	"endOfLine": "auto",
+	"overrides": [
+		{
+			"files": ["*.yml", "*.yaml"],
+			"options": {
+				"useTabs": false,
+				"tabWidth": 2,
+				"singleQuote": false
+			}
+		}
+	]
 }

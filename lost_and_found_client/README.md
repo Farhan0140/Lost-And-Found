@@ -19,18 +19,18 @@ npm run dev                   # http://localhost:5173
 The backend (`../lost_and_found`) must be running and must allow this origin:
 `ALLOWED_ORIGINS=http://localhost:5173` in the backend's `.env`.
 
-| Script             | What it does                                   |
-| ------------------ | ---------------------------------------------- |
-| `npm run dev`      | development server with hot reload             |
-| `npm run build`    | production build into `dist/`                  |
-| `npm run preview`  | serve the production build locally             |
-| `npm run format`   | format everything with Prettier (tabs)         |
+| Script            | What it does                           |
+| ----------------- | -------------------------------------- |
+| `npm run dev`     | development server with hot reload     |
+| `npm run build`   | production build into `dist/`          |
+| `npm run preview` | serve the production build locally     |
+| `npm run format`  | format everything with Prettier (tabs) |
 
 ### Environment
 
-| Variable       | Example                              | Notes                                   |
-| -------------- | ------------------------------------ | --------------------------------------- |
-| `VITE_API_URL` | `http://localhost:4000/api/v1`       | must end with `/api/v1`, no trailing `/` |
+| Variable       | Example                        | Notes                                    |
+| -------------- | ------------------------------ | ---------------------------------------- |
+| `VITE_API_URL` | `http://localhost:4000/api/v1` | must end with `/api/v1`, no trailing `/` |
 
 `VITE_*` values are baked into the build — rebuild after changing them.
 
@@ -126,7 +126,7 @@ exactly one refresh runs and the others wait for it. If the refresh fails the us
 ### Privacy in the UI
 
 - National IDs are never shown (admins see "Hashed").
-- Follow-up answers are shown only to the reporter and admins; owners see only *agree / differs / not compared*
+- Follow-up answers are shown only to the reporter and admins; owners see only _agree / differs / not compared_
   for a match, never the finder's answers. Finders never learn who the owner is.
 
 ---
@@ -137,6 +137,6 @@ exactly one refresh runs and the others wait for it. If the refresh fails the us
    `KIOSK-01`; test students are in the university table (e.g. `TEST0001` with national ID `1234567890`) and
    register through **Get started**.
 2. Lockers are handed out only while a kiosk is online. Without the ESP32, use the backend's Swagger page
-   (`/api/docs`) → *Device* → `hello` / `heartbeat` with the kiosk's ID and secret.
+   (`/api/docs`) → _Device_ → `hello` / `heartbeat` with the kiosk's ID and secret.
 3. Without Gemini API keys, photo reading and follow-up questions show the "AI is taking a short break" state.
    That is expected.

@@ -1,0 +1,202 @@
+# SmartFind CI: runs on every push to main and on every pull request.
+#
+#   backend              formatting + unit tests (no database, no AI)
+#   backend-integration  real PostgreSQL + pgvector: migrate, seed, start the server,
+#                        then tests/integration/api.smoke.js over HTTP (auth, reports,
+#                        kiosk device API, live updates)
+#   client               formatting + production build of the web client
+#   firmware             PlatformIO build of the ESP32 kiosk firmware
+#
+# Nothing here uses real secrets: the values below exist only inside the CI machine.
+# No Gemini key is needed; no test calls the AI.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  backend:
+    name: Backend · format + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: lost_and_found
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lost_and_found/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Formatting (Prettier)
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+  # ─────────────────────────────────────────────────────────────
+  backend-integration:
+    name: Backend · integration (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: lost_and_found
+
+    services:
+      postgres:
+        # Same extension as Neon in production: the first migration creates `vector`.
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: smartfind
+          POSTGRES_PASSWORD: smartfind
+          POSTGRES_DB: smartfind
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smartfind"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      NODE_ENV: test
+      PORT: 4000
+      DATABASE_URL: postgresql://smartfind:smartfind@127.0.0.1:5432/smartfind?sslmode=disable
+      DB_POOL_MAX: 5
+      JWT_SECRET: ci-jwt-secret-only-for-github-actions-aaaaaaaaaaaaaaaa
+      NID_HMAC_KEY: ci-nid-hmac-key-only-for-github-actions-bbbbbbbbbbbbbb
+      ALLOWED_ORIGINS: http://localhost:5173
+      ADMIN_STUDENT_ID: ADMIN001
+      ADMIN_EMAIL: admin@smartfind.local
+      ADMIN_PASSWORD: ci-admin-password-123
+      DEVICE_SEED_SECRET: sfd_ci0000000000000000000000000000
+      APP_TIMEZONE: Asia/Dhaka
+      LOG_LEVEL: debug
+      # read by tests/integration/api.smoke.js
+      SMOKE_API_URL: http://127.0.0.1:4000/api/v1
+      SMOKE_ADMIN_PASSWORD: ci-admin-password-123
+      SMOKE_DEVICE_SECRET: sfd_ci0000000000000000000000000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lost_and_found/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Migrate + seed (twice, to prove the seed is idempotent)
+        run: |
+          npm run setup
+          npm run setup
+
+      - name: Start the server
+        run: |
+          nohup npm start > server.log 2>&1 &
+
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4000/api/v1/health > /dev/null; then
+              echo "Server is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "::error::The server did not answer /api/v1/health within 60 s"
+          cat server.log
+          exit 1
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Verify the audit hash chain
+        run: npm run verify-audit
+
+      - name: Server log
+        if: always()
+        run: cat server.log || true
+
+  # ─────────────────────────────────────────────────────────────
+  client:
+    name: Web client · format + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: lost_and_found_client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lost_and_found_client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Formatting (Prettier)
+        run: npm run format:check
+
+      - name: Production build
+        env:
+          VITE_API_URL: https://smartfind-api.example.com/api/v1
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────
+  firmware:
+    name: ESP32 firmware · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The ESP32 toolchain is ~1 GB: keep it between runs (refreshed when platformio.ini changes).
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: pio-${{ runner.os }}-${{ hashFiles('Esp32-Firmware/platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build
+        run: pio run -d Esp32-Firmware
+
+      - name: Firmware size
+        run: ls -l Esp32-Firmware/.pio/build/esp32dev/firmware.bin

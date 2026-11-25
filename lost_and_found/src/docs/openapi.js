@@ -74,7 +74,10 @@ const TAGS = [
 	},
 	{ name: 'Matches', description: "The owner's side of a match + 5-minute collection code" },
 	{ name: 'Notifications', description: 'In-app notifications' },
-	{ name: 'Live', description: 'Server-Sent Events: tells open pages what changed, so they refetch at once' },
+	{
+		name: 'Live',
+		description: 'Server-Sent Events: tells open pages what changed, so they refetch at once',
+	},
 	{ name: 'Admin · Overview', description: 'Dashboard and AI key health' },
 	{ name: 'Admin · Review', description: 'Match review queue (approve / reject)' },
 	{ name: 'Admin · Reports', description: 'All reports, extra deposit codes, oversize items' },

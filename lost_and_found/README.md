@@ -27,12 +27,16 @@ The raw OpenAPI 3.1 file is at `/api/docs/openapi.json` (import it into Postman 
 | `npm run migrate` | apply new SQL migrations only |
 | `npm run seed` | add missing seed data (safe to repeat) |
 | `npm test` | unit tests: the 8 required §8.6 tests, canonicalization, personal-data filter, Gemini failover, API docs cover every route |
+| `npm run test:integration` | HTTP smoke test against a RUNNING server with a throw-away database (needs `SMOKE_ADMIN_PASSWORD`, `SMOKE_DEVICE_SECRET`; see the top of `tests/integration/api.smoke.js`) |
 | `npm run evaluate` | matching evaluation on the frozen fixtures (precision / recall / F1, threshold sweep, ablation) |
 | `npm run list-models` | which Gemini models each key can reach, and whether your `.env` names are valid |
 | `npm run generate-question-sets -- laptop tablet` | AI-draft question sets (saved as DRAFT; activate in the dashboard) |
 | `npm run create-device -- KIOSK-02 "Library kiosk" 4 B` | register another ESP32 with lockers B1–B4 |
 | `npm run verify-audit` | re-check every hash in the audit chain |
 | `npm run format` | Prettier (tabs) |
+| `npm run format:check` | fails if a file is not formatted (used by CI) |
+
+**CI:** `.github/workflows/ci.yml` (repo root) runs on every push to `main` and every pull request: formatting + unit tests, the integration test on a real PostgreSQL + pgvector, the web client build, and the ESP32 firmware build. Results: GitHub → **Actions**.
 
 ## 2. Environment (`.env`)
 
